@@ -144,33 +144,33 @@ impl<T, Ts: std::iter::FromIterator<T>, W> std::iter::FromIterator<Result<T, W>>
         Self {
             value: iter
                 .into_iter()
-                .filter_map(|item| item.w_ok(&mut warnings))
+                .filter_map(|item| item.warned_ok(&mut warnings))
                 .collect(),
             warnings,
         }
     }
 }
 
-pub trait ResultWarningExtension<T, E>: Sized {
-    fn w_ok(self, warnings: &mut Vec<impl From<E>>) -> Option<T>;
+pub trait ResultExtension<T, E>: Sized {
+    fn warned_ok(self, warnings: &mut Vec<impl From<E>>) -> Option<T>;
 
-    fn w_unwrap_or(self, warnings: &mut Vec<E>, default: T) -> T {
-        self.w_ok(warnings).unwrap_or(default)
+    fn warned_unwrap_or(self, warnings: &mut Vec<E>, default: T) -> T {
+        self.warned_ok(warnings).unwrap_or(default)
     }
-    fn w_unwrap_or_else(self, warnings: &mut Vec<E>, f: impl FnOnce(&E) -> T) -> T {
-        self.w_ok(warnings)
+    fn warned_unwrap_or_else(self, warnings: &mut Vec<E>, f: impl FnOnce(&E) -> T) -> T {
+        self.warned_ok(warnings)
             .unwrap_or_else(|| f(&warnings.last().unwrap()))
     }
-    fn w_unwrap_or_default(self, warnings: &mut Vec<E>) -> T
+    fn warned_unwrap_or_default(self, warnings: &mut Vec<E>) -> T
     where
         T: Default,
     {
-        self.w_ok(warnings).unwrap_or_default()
+        self.warned_ok(warnings).unwrap_or_default()
     }
 }
 
-impl<T, E> ResultWarningExtension<T, E> for Result<T, E> {
-    fn w_ok(self, warnings: &mut Vec<impl From<E>>) -> Option<T> {
+impl<T, E> ResultExtension<T, E> for Result<T, E> {
+    fn warned_ok(self, warnings: &mut Vec<impl From<E>>) -> Option<T> {
         match self {
             Ok(x) => Some(x),
             Err(e) => {
