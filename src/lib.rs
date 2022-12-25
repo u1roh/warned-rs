@@ -10,9 +10,7 @@ impl<T, W> Warned<T, W> {
     /// use warned::*;
     /// let a = Warned::new(123, vec!["x", "y"]);
     /// assert_eq!(a.value, 123);
-    /// assert_eq!(a.warnings.len(), 2);
-    /// assert_eq!(a.warnings[0], "x");
-    /// assert_eq!(a.warnings[1], "y");
+    /// assert_eq!(a.warnings, vec!["x", "y"]);
     /// ```
     pub fn new(value: T, warnings: impl IntoIterator<Item = W>) -> Self {
         Self {
@@ -24,11 +22,8 @@ impl<T, W> Warned<T, W> {
     /// ```
     /// use warned::*;
     /// let mut warnings = vec![];
-    /// let a = Warned::new(123, vec!["x", "y"]);
-    /// assert_eq!(a.unwrap(&mut warnings), 123);
-    /// assert_eq!(warnings.len(), 2);
-    /// assert_eq!(warnings[0], "x");
-    /// assert_eq!(warnings[1], "y");
+    /// assert_eq!(Warned::new(123, vec!["x", "y"]).unwrap(&mut warnings), 123);
+    /// assert_eq!(warnings, vec!["x", "y"]);
     /// ```
     pub fn unwrap(self, warnings: &mut impl Extend<W>) -> T {
         warnings.extend(self.warnings);
