@@ -40,6 +40,19 @@ impl<T, W> Warned<T, W> {
     pub fn and_then<U>(mut self, f: impl Fn(T) -> Warned<U, W>) -> Warned<U, W> {
         Warned::new(f(self.value).unwrap(&mut self.warnings), self.warnings)
     }
+
+    /// ```
+    /// use warned::*;
+    /// assert_eq!(Warned::<_, &str>::new(123, []).into_result(), Ok(123));
+    /// assert_eq!(Warned::new(123, ["warning"]).into_result(), Err(vec!["warning"]));
+    /// ```
+    pub fn into_result(self) -> Result<T, Vec<W>> {
+        if self.warnings.is_empty() {
+            Ok(self.value)
+        } else {
+            Err(self.warnings)
+        }
+    }
 }
 
 impl<T, W> std::ops::Deref for Warned<T, W> {
@@ -90,6 +103,17 @@ impl<T, W> From<Result<T, W>> for Warned<Option<T>, W> {
             Ok(x) => Self::new(Some(x), vec![]),
             Err(e) => Self::new(None, vec![e]),
         }
+    }
+}
+
+impl<T, W> From<Warned<T, W>> for Result<T, Vec<W>> {
+    /// ```
+    /// use warned::*;
+    /// assert_eq!(Ok(123), Warned::<_, &str>::new(123, []).into());
+    /// assert_eq!(Err(vec!["warning"]), Warned::new(123, ["warning"]).into());
+    /// ```
+    fn from(src: Warned<T, W>) -> Self {
+        src.into_result()
     }
 }
 
