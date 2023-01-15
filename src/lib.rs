@@ -77,7 +77,7 @@ impl<T: Default, W> Default for Warned<T, W> {
 impl<T, W> From<T> for Warned<T, W> {
     /// ```
     /// use warned::*;
-    /// let a: Warned::<i32, String> = (111).into();
+    /// let a: Warned<i32, String> = (111).into();
     /// assert_eq!(a.value, 111);
     /// assert!(a.warnings.is_empty());
     /// ```
@@ -86,22 +86,42 @@ impl<T, W> From<T> for Warned<T, W> {
     }
 }
 
-impl<T, W> From<Result<T, W>> for Warned<Option<T>, W> {
+impl<T, W, E: Into<W>> From<Result<T, E>> for Warned<Option<T>, W> {
     /// ```
     /// use warned::Warned;
     ///
-    /// let a: Warned::<Option<i32>, &str> = Ok(111).into();
+    /// let a: Warned<Option<i32>, &str> = Ok::<i32, &str>(111).into();
     /// assert_eq!(a.value, Some(111));
     /// assert!(a.warnings.is_empty());
     ///
-    /// let b: Warned::<Option<i32>, &str> = Err("oops").into();
+    /// let b: Warned<Option<i32>, &str> = Err::<i32, &str>("oops").into();
     /// assert!(b.value.is_none());
     /// assert_eq!(b.warnings, vec!["oops"]);
     /// ```
-    fn from(result: Result<T, W>) -> Self {
+    fn from(result: Result<T, E>) -> Self {
         match result {
             Ok(x) => Self::new(Some(x), vec![]),
-            Err(e) => Self::new(None, vec![e]),
+            Err(e) => Self::new(None, vec![e.into()]),
+        }
+    }
+}
+
+impl<T: Default, W, E: Into<W>> From<Result<T, E>> for Warned<T, W> {
+    /// ```
+    /// use warned::Warned;
+    ///
+    /// let a: Warned<i32, &str> = Ok::<_, &str>(111).into();
+    /// assert_eq!(a.value, 111);
+    /// assert!(a.warnings.is_empty());
+    ///
+    /// let b: Warned<i32, &str> = Err("oops").into();
+    /// assert_eq!(b.value, 0);
+    /// assert_eq!(b.warnings, vec!["oops"]);
+    /// ```
+    fn from(result: Result<T, E>) -> Self {
+        match result {
+            Ok(x) => Self::new(x, vec![]),
+            Err(e) => Self::new(T::default(), vec![e.into()]),
         }
     }
 }
@@ -171,7 +191,7 @@ impl<T, Ts: std::iter::FromIterator<T>, W> std::iter::FromIterator<Result<T, W>>
 }
 
 pub trait ResultExtension<T, E>: Sized {
-    fn warned_ok(self, warnings: &mut Vec<impl From<E>>) -> Option<T>;
+    fn warned_ok<W: From<E>>(self, warnings: &mut Vec<W>) -> Option<T>;
 
     fn warned_unwrap_or(self, warnings: &mut Vec<E>, default: T) -> T {
         self.warned_ok(warnings).unwrap_or(default)
@@ -189,7 +209,7 @@ pub trait ResultExtension<T, E>: Sized {
 }
 
 impl<T, E> ResultExtension<T, E> for Result<T, E> {
-    fn warned_ok(self, warnings: &mut Vec<impl From<E>>) -> Option<T> {
+    fn warned_ok<W: From<E>>(self, warnings: &mut Vec<W>) -> Option<T> {
         match self {
             Ok(x) => Some(x),
             Err(e) => {
