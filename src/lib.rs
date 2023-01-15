@@ -204,6 +204,68 @@ impl<T, Ts: std::iter::FromIterator<T>, W> std::iter::FromIterator<Result<T, W>>
     }
 }
 
+pub trait ForceFrom<T>: Sized {
+    type Warning;
+    fn force_from(src: T) -> Warned<Self, Self::Warning>;
+}
+
+pub trait ForceFromOr<T>: Sized {
+    type Warning;
+    fn force_from_or(src: T, default: Self) -> Warned<Self, Self::Warning>;
+    fn force_from_or_else(src: T, f: impl FnOnce() -> Self) -> Warned<Self, Self::Warning>;
+}
+
+pub trait ForceInto<T> {
+    type Warning;
+    fn force_into(self) -> Warned<T, Self::Warning>;
+}
+
+pub trait ForceIntoOr<T> {
+    type Warning;
+    fn force_into_or(self, default: T) -> Warned<T, Self::Warning>;
+    fn force_into_or_else(self, f: impl FnOnce() -> T) -> Warned<T, Self::Warning>;
+}
+
+impl<T, U: ForceFrom<T>> ForceInto<U> for T {
+    type Warning = U::Warning;
+    fn force_into(self) -> Warned<U, Self::Warning> {
+        U::force_from(self)
+    }
+}
+
+impl<T, U: ForceFromOr<T>> ForceIntoOr<U> for T {
+    type Warning = U::Warning;
+    fn force_into_or(self, default: U) -> Warned<U, Self::Warning> {
+        U::force_from_or(self, default)
+    }
+    fn force_into_or_else(self, f: impl FnOnce() -> U) -> Warned<U, Self::Warning> {
+        U::force_from_or_else(self, f)
+    }
+}
+
+impl<T: Default, U: TryInto<T>> ForceFrom<U> for T {
+    type Warning = U::Error;
+    fn force_from(src: U) -> Warned<T, Self::Warning> {
+        src.try_into().into()
+    }
+}
+
+impl<T, U: TryInto<T>> ForceFromOr<U> for T {
+    type Warning = U::Error;
+    fn force_from_or(src: U, default: T) -> Warned<T, Self::Warning> {
+        match src.try_into() {
+            Ok(value) => value.into(),
+            Err(e) => Warned::new(default, vec![e]),
+        }
+    }
+    fn force_from_or_else(src: U, f: impl FnOnce() -> T) -> Warned<T, Self::Warning> {
+        match src.try_into() {
+            Ok(value) => value.into(),
+            Err(e) => Warned::new(f(), vec![e]),
+        }
+    }
+}
+
 pub trait ResultExtension<T, E>: Sized {
     fn into_warned<W>(self) -> Warned<Option<T>, W>
     where
