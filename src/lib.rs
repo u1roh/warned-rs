@@ -33,6 +33,20 @@ impl<T, W> Warned<T, W> {
     /// ```
     /// use warned::*;
     /// let a = Warned::new(123, vec!["x", "y"]);
+    /// let b = a.map(|value| 2 * value);
+    /// assert_eq!(b.value, 246);
+    /// assert_eq!(b.warnings, vec!["x", "y"]);
+    /// ```
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Warned<U, W> {
+        Warned {
+            value: f(self.value),
+            warnings: self.warnings,
+        }
+    }
+
+    /// ```
+    /// use warned::*;
+    /// let a = Warned::new(123, vec!["x", "y"]);
     /// let b = a.and_then(|value| Warned::new(value as f64 / 2.0, vec!["z"]));
     /// assert_eq!(b.value, 123.0 / 2.0);
     /// assert_eq!(b.warnings, vec!["x", "y", "z"]);
@@ -191,7 +205,16 @@ impl<T, Ts: std::iter::FromIterator<T>, W> std::iter::FromIterator<Result<T, W>>
 }
 
 pub trait ResultExtension<T, E>: Sized {
-    fn warned_ok<W: From<E>>(self, warnings: &mut Vec<W>) -> Option<T>;
+    fn into_warned<W>(self) -> Warned<Option<T>, W>
+    where
+        E: Into<W>;
+
+    fn warned_ok<W>(self, warnings: &mut Vec<W>) -> Option<T>
+    where
+        E: Into<W>,
+    {
+        self.into_warned().unwrap(warnings)
+    }
 
     fn warned_unwrap_or(self, warnings: &mut Vec<E>, default: T) -> T {
         self.warned_ok(warnings).unwrap_or(default)
@@ -209,13 +232,10 @@ pub trait ResultExtension<T, E>: Sized {
 }
 
 impl<T, E> ResultExtension<T, E> for Result<T, E> {
-    fn warned_ok<W: From<E>>(self, warnings: &mut Vec<W>) -> Option<T> {
-        match self {
-            Ok(x) => Some(x),
-            Err(e) => {
-                warnings.push(e.into());
-                None
-            }
-        }
+    fn into_warned<W>(self) -> Warned<Option<T>, W>
+    where
+        E: Into<W>,
+    {
+        self.into()
     }
 }
