@@ -21,12 +21,15 @@ impl<T, W> Warned<T, W> {
 
     /// ```
     /// use warned::*;
-    /// let mut warnings = vec![];
+    /// let mut warnings: Vec<&str> = vec![];
     /// assert_eq!(Warned::new(123, vec!["x", "y"]).unwrap(&mut warnings), 123);
     /// assert_eq!(warnings, vec!["x", "y"]);
     /// ```
-    pub fn unwrap(self, warnings: &mut impl Extend<W>) -> T {
-        warnings.extend(self.warnings);
+    pub fn unwrap<V>(self, warnings: &mut Vec<V>) -> T
+    where
+        W: Into<V>,
+    {
+        warnings.extend(self.warnings.into_iter().map(Into::into));
         self.value
     }
 
@@ -41,6 +44,13 @@ impl<T, W> Warned<T, W> {
         Warned {
             value: f(self.value),
             warnings: self.warnings,
+        }
+    }
+
+    pub fn map_warnings<V>(self, f: impl Fn(W) -> V) -> Warned<T, V> {
+        Warned {
+            value: self.value,
+            warnings: self.warnings.into_iter().map(f).collect(),
         }
     }
 
