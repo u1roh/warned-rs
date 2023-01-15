@@ -209,6 +209,28 @@ pub trait ResultExtension<T, E>: Sized {
     where
         E: Into<W>;
 
+    fn into_warned_or<W>(self, default: T) -> Warned<T, W>
+    where
+        E: Into<W>,
+    {
+        self.into_warned().map(|value| value.unwrap_or(default))
+    }
+
+    fn into_warned_or_else<W>(self, f: impl FnOnce() -> T) -> Warned<T, W>
+    where
+        E: Into<W>,
+    {
+        self.into_warned().map(|value| value.unwrap_or_else(f))
+    }
+
+    fn into_warned_or_default<W>(self) -> Warned<T, W>
+    where
+        E: Into<W>,
+        T: Default,
+    {
+        self.into_warned().map(|value| value.unwrap_or_default())
+    }
+
     fn warned_ok<W>(self, warnings: &mut Vec<W>) -> Option<T>
     where
         E: Into<W>,
