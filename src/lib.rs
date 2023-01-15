@@ -69,6 +69,26 @@ impl<T, W> Warned<T, W> {
     }
 }
 
+impl<T, W> Warned<Option<T>, W> {
+    /// ```
+    /// use warned::Warned;
+    ///
+    /// let a = Warned::<Option<i32>, &str>::from_result(Ok(111));
+    /// assert_eq!(a.value, Some(111));
+    /// assert!(a.warnings.is_empty());
+    ///
+    /// let b = Warned::<Option<i32>, &str>::from_result(Err("oops"));
+    /// assert!(b.value.is_none());
+    /// assert_eq!(b.warnings, vec!["oops"]);
+    /// ```
+    pub fn from_result(src: Result<T, W>) -> Self {
+        match src {
+            Ok(x) => Self::new(Some(x), vec![]),
+            Err(e) => Self::new(None, vec![e]),
+        }
+    }
+}
+
 impl<T, W> std::ops::Deref for Warned<T, W> {
     type Target = T;
     fn deref(&self) -> &T {
@@ -100,23 +120,20 @@ impl<T, W> From<T> for Warned<T, W> {
     }
 }
 
-impl<T, W, E: Into<W>> From<Result<T, E>> for Warned<Option<T>, W> {
+impl<T, E> From<Result<T, E>> for Warned<Option<T>, E> {
     /// ```
     /// use warned::Warned;
     ///
-    /// let a: Warned<Option<i32>, &str> = Ok::<i32, &str>(111).into();
+    /// let a: Warned<Option<i32>, &str> = Ok(111).into();
     /// assert_eq!(a.value, Some(111));
     /// assert!(a.warnings.is_empty());
     ///
-    /// let b: Warned<Option<i32>, &str> = Err::<i32, &str>("oops").into();
+    /// let b: Warned<Option<i32>, &str> = Err("oops").into();
     /// assert!(b.value.is_none());
     /// assert_eq!(b.warnings, vec!["oops"]);
     /// ```
     fn from(result: Result<T, E>) -> Self {
-        match result {
-            Ok(x) => Self::new(Some(x), vec![]),
-            Err(e) => Self::new(None, vec![e.into()]),
-        }
+        Self::from_result(result)
     }
 }
 
@@ -177,7 +194,7 @@ impl<T, Ts: std::iter::FromIterator<T>, W> std::iter::FromIterator<Result<T, W>>
         Self {
             value: iter
                 .into_iter()
-                .filter_map(|item| item.warned_ok(&mut warnings))
+                .filter_map(|item| Warned::from_result(item).unwrap(&mut warnings))
                 .collect(),
             warnings,
         }
@@ -238,63 +255,5 @@ impl<T, U: TryInto<T>> ForceFromOr<U> for T {
             Ok(value) => value.into(),
             Err(e) => Warned::new(f(), vec![e]),
         }
-    }
-}
-
-pub trait ResultExtension<T, E>: Sized {
-    fn into_warned<W>(self) -> Warned<Option<T>, W>
-    where
-        E: Into<W>;
-
-    fn into_warned_or<W>(self, default: T) -> Warned<T, W>
-    where
-        E: Into<W>,
-    {
-        self.into_warned().map(|value| value.unwrap_or(default))
-    }
-
-    fn into_warned_or_else<W>(self, f: impl FnOnce() -> T) -> Warned<T, W>
-    where
-        E: Into<W>,
-    {
-        self.into_warned().map(|value| value.unwrap_or_else(f))
-    }
-
-    fn into_warned_or_default<W>(self) -> Warned<T, W>
-    where
-        E: Into<W>,
-        T: Default,
-    {
-        self.into_warned().map(|value| value.unwrap_or_default())
-    }
-
-    fn warned_ok<W>(self, warnings: &mut Vec<W>) -> Option<T>
-    where
-        E: Into<W>,
-    {
-        self.into_warned().unwrap(warnings)
-    }
-
-    fn warned_unwrap_or(self, warnings: &mut Vec<E>, default: T) -> T {
-        self.warned_ok(warnings).unwrap_or(default)
-    }
-    fn warned_unwrap_or_else(self, warnings: &mut Vec<E>, f: impl FnOnce(&E) -> T) -> T {
-        self.warned_ok(warnings)
-            .unwrap_or_else(|| f(&warnings.last().unwrap()))
-    }
-    fn warned_unwrap_or_default(self, warnings: &mut Vec<E>) -> T
-    where
-        T: Default,
-    {
-        self.warned_ok(warnings).unwrap_or_default()
-    }
-}
-
-impl<T, E> ResultExtension<T, E> for Result<T, E> {
-    fn into_warned<W>(self) -> Warned<Option<T>, W>
-    where
-        E: Into<W>,
-    {
-        self.into()
     }
 }
