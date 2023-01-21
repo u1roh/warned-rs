@@ -287,25 +287,9 @@ pub trait ForceFrom<T>: Sized {
     fn force_from(src: T) -> Warned<Self, Self::Warning>;
 }
 
-pub trait ForceFromOr<T>: Sized {
-    type Warning;
-    fn force_from_or_else(src: T, f: impl FnOnce() -> Self) -> Warned<Self, Self::Warning>;
-    fn force_from_or(src: T, default: Self) -> Warned<Self, Self::Warning> {
-        Self::force_from_or_else(src, || default)
-    }
-}
-
 pub trait ForceInto<T> {
     type Warning;
     fn force_into(self) -> Warned<T, Self::Warning>;
-}
-
-pub trait ForceIntoOr<T>: Sized {
-    type Warning;
-    fn force_into_or_else(self, f: impl FnOnce() -> T) -> Warned<T, Self::Warning>;
-    fn force_into_or(self, default: T) -> Warned<T, Self::Warning> {
-        self.force_into_or_else(|| default)
-    }
 }
 
 impl<T, U: ForceFrom<T>> ForceInto<U> for T {
@@ -315,26 +299,9 @@ impl<T, U: ForceFrom<T>> ForceInto<U> for T {
     }
 }
 
-impl<T, U: ForceFromOr<T>> ForceIntoOr<U> for T {
-    type Warning = U::Warning;
-    fn force_into_or_else(self, f: impl FnOnce() -> U) -> Warned<U, Self::Warning> {
-        U::force_from_or_else(self, f)
-    }
-}
-
-impl<T: Default, U: ForceIntoOr<T>> ForceFrom<U> for T {
-    type Warning = U::Warning;
-    fn force_from(src: U) -> Warned<T, Self::Warning> {
-        src.force_into_or_else(T::default)
-    }
-}
-
-impl<T, U: TryInto<T>> ForceFromOr<U> for T {
-    type Warning = U::Error;
-    fn force_from_or_else(src: U, f: impl FnOnce() -> T) -> Warned<T, Self::Warning> {
-        match src.try_into() {
-            Ok(value) => value.into(),
-            Err(e) => Warned::new(f(), vec![e]),
-        }
+impl<T: Into<U>, U> ForceFrom<T> for U {
+    type Warning = std::convert::Infallible;
+    fn force_from(src: T) -> Warned<Self, Self::Warning> {
+        src.into().into()
     }
 }
