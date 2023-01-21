@@ -255,7 +255,7 @@ impl<T, W> Warned<Option<T>, W> {
     pub fn from_result(src: Result<T, W>) -> Self {
         match src {
             Ok(x) => Self::new(Some(x), vec![]),
-            Err(e) => Self::new(None, vec![e.into()]),
+            Err(e) => Self::new(None, vec![e]),
         }
     }
 }
