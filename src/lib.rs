@@ -2,6 +2,7 @@
 
 /// Represents a value with warnings.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Warned<T, W> {
     pub value: T,
     pub warnings: Vec<W>,
