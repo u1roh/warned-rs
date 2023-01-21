@@ -1,3 +1,5 @@
+//! The `Warned<T, W>` type represents a value with warnings, where as the `Result<T, E>` type represents a value or error.
+
 /// Represents a value with warnings.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Warned<T, W> {
@@ -47,6 +49,13 @@ impl<T, W> Warned<T, W> {
         }
     }
 
+    /// ```
+    /// use warned::*;
+    /// let a = Warned::new(123, vec!["x", "y"]);
+    /// let b = a.map_warnings(|s| s.to_uppercase());
+    /// assert_eq!(b.value, 123);
+    /// assert_eq!(b.warnings, vec!["X", "Y"]);
+    /// ```
     pub fn map_warnings<V>(self, f: impl Fn(W) -> V) -> Warned<T, V> {
         Warned {
             value: self.value,
@@ -282,11 +291,13 @@ impl<T, Ts: std::iter::FromIterator<T>, W> std::iter::FromIterator<Result<T, W>>
     }
 }
 
+/// Convert `T` into `Warned<T, Warning>`
 pub trait ForceFrom<T>: Sized {
     type Warning;
     fn force_from(src: T) -> Warned<Self, Self::Warning>;
 }
 
+/// Convert `T` into `Warned<T, Warning>`
 pub trait ForceInto<T> {
     type Warning;
     fn force_into(self) -> Warned<T, Self::Warning>;
