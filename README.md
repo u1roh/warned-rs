@@ -5,17 +5,17 @@ The `Warned<T, W>` type represents a value with warnings, while the `Result<T, E
 ## Basic
 ```rust
 // new
-let pi = warned::Warned::new(3.14, vec!`"bad precision"`);
+let pi = warned::Warned::new(3.14, vec!["bad precision"]);
 assert_eq!(pi.value, 3.14);
-assert_eq!(pi.warnings, vec!`"bad precision"`);
+assert_eq!(pi.warnings, vec!["bad precision"]);
 
 // dereference
 assert_eq!(*pi, 3.14);
 
 // unwrap
-let mut warnings = vec!`"several", "existing", "warnings"`;
+let mut warnings = vec!["several", "existing", "warnings"];
 assert_eq!(pi.unwrap(&mut warnings), 3.14);
-assert_eq!(warnings, vec!`"several", "existing", "warnings", "bad precision"`);
+assert_eq!(warnings, vec!["several", "existing", "warnings", "bad precision"]);
 
 // into
 let a: warned::Warned<i32, String> = 123.into();
@@ -40,22 +40,22 @@ assert!(a.warnings.is_empty());
 ### `FromIterator<Warned<T, W>>`
 A sequence of `Warned<T, W>` can be collected as a `Warned<Vec<T>, W>`.
 ```rust
-let src = vec!`
-    warned::Warned::new(111, vec!``),
-    warned::Warned::new(222, vec!`"oops"`),
-    warned::Warned::new(333, vec!`"foo", "bar"`)
+let src = vec![
+    warned::Warned::new(111, vec![]),
+    warned::Warned::new(222, vec!["oops"]),
+    warned::Warned::new(333, vec!["foo", "bar"])
 `;
 let dst = src.into_iter().collect::<warned::Warned<Vec<_>, _>>();
-assert_eq!(dst.value, vec!`111, 222, 333`);
-assert_eq!(dst.warnings, vec!`"oops", "foo", "bar"`);
+assert_eq!(dst.value, vec![111, 222, 333]);
+assert_eq!(dst.warnings, vec!["oops", "foo", "bar"]);
 ```
 ### `FromIterator<Result<T, E>>`
 A sequence of `Result<T, E>` can be collected as a `Warned<Vec<T>, E>`.
 ```rust
-let src = vec!`Ok(111), Err("oops"), Err("oops2"), Ok(222)`;
+let src = vec![Ok(111), Err("oops"), Err("oops2"), Ok(222)];
 let dst = src.into_iter().collect::<warned::Warned<Vec<_>, _>>();
-assert_eq!(dst.value, vec!`111, 222`);
-assert_eq!(dst.warnings, vec!`"oops", "oops2"`);
+assert_eq!(dst.value, vec![111, 222]);
+assert_eq!(dst.warnings, vec!["oops", "oops2"]);
 ```
 
 ## `ForceFrom` trait, `ForceInto` trait
