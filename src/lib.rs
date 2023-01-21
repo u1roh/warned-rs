@@ -138,12 +138,32 @@ impl<T, E> From<Result<T, E>> for Warned<Option<T>, E> {
     /// assert_eq!(a.value, Some(111));
     /// assert!(a.warnings.is_empty());
     ///
-    /// let b: Warned<Option<i32>, &str> = Err("oops").into();
+    /// let b: Warned<Option<i32>, &str> = Err::<i32, _>("oops").into();
     /// assert!(b.value.is_none());
     /// assert_eq!(b.warnings, vec!["oops"]);
     /// ```
     fn from(result: Result<T, E>) -> Self {
         Self::from_result(result)
+    }
+}
+
+impl<T: Default, E> From<Result<T, E>> for Warned<T, E> {
+    /// ```
+    /// use warned::Warned;
+    ///
+    /// let a: Warned<i32, &str> = Ok(111).into();
+    /// assert_eq!(a.value, 111);
+    /// assert!(a.warnings.is_empty());
+    ///
+    /// let b: Warned<i32, &str> = Err::<i32, _>("oops").into();
+    /// assert_eq!(b.value, 0);
+    /// assert_eq!(b.warnings, vec!["oops"]);
+    /// ```
+    fn from(result: Result<T, E>) -> Self {
+        match result {
+            Ok(x) => x.into(),
+            Err(e) => Self::new(T::default(), vec![e]),
+        }
     }
 }
 
