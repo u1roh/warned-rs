@@ -44,7 +44,7 @@ let src = vec![
     warned::Warned::new(111, vec![]),
     warned::Warned::new(222, vec!["oops"]),
     warned::Warned::new(333, vec!["foo", "bar"])
-`;
+];
 let dst = src.into_iter().collect::<warned::Warned<Vec<_>, _>>();
 assert_eq!(dst.value, vec![111, 222, 333]);
 assert_eq!(dst.warnings, vec!["oops", "foo", "bar"]);
@@ -66,7 +66,7 @@ returns `Result`, as follows.
 pub trait ForceFrom<T>: Sized {
    type Warning;
    fn force_from(src: T) -> Warned<Self, Self::Warning>;
-//!}
+}
 pub trait ForceInto<T> {
     type Warning;
     fn force_into(self) -> Warned<T, Self::Warning>;
