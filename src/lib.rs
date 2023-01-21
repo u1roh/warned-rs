@@ -292,6 +292,16 @@ pub trait ForceInto<T> {
     fn force_into(self) -> Warned<T, Self::Warning>;
 }
 
+/// ```
+/// use warned::*;
+/// struct A;
+/// struct B;
+/// impl ForceFrom<A> for B {
+///     type Warning = String;
+///     fn force_from(src: A) -> Warned<Self, Self::Warning> { Warned::new(B, vec![]) }
+/// }
+/// let _: Warned<B, String> = A.force_into();
+/// ```
 impl<T, U: ForceFrom<T>> ForceInto<U> for T {
     type Warning = U::Warning;
     fn force_into(self) -> Warned<U, Self::Warning> {
@@ -299,6 +309,15 @@ impl<T, U: ForceFrom<T>> ForceInto<U> for T {
     }
 }
 
+/// ```
+/// use warned::*;
+/// struct A;
+/// struct B;
+/// impl From<A> for B {
+///     fn from(src: A) -> B { B }
+/// }
+/// let _: Warned<B, std::convert::Infallible> = A.force_into();
+/// ```
 impl<T: Into<U>, U> ForceFrom<T> for U {
     type Warning = std::convert::Infallible;
     fn force_from(src: T) -> Warned<Self, Self::Warning> {
