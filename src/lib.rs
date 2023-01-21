@@ -77,6 +77,57 @@ impl<T, W> Warned<T, W> {
             Err(self.warnings)
         }
     }
+
+    /// ```
+    /// use warned::Warned;
+    ///
+    /// let a = Warned::<_, &str>::from_result_or_else(Ok(1), || 2);
+    /// assert_eq!(a.value, 1);
+    /// assert!(a.warnings.is_empty());
+    ///
+    /// let b = Warned::<_, &str>::from_result_or_else(Err("oops"), || 2);
+    /// assert_eq!(b.value, 2);
+    /// assert_eq!(b.warnings, vec!["oops"]);
+    /// ```
+    pub fn from_result_or_else(src: Result<T, W>, f: impl FnOnce() -> T) -> Self {
+        match src {
+            Ok(x) => x.into(),
+            Err(e) => Self::new(f(), vec![e]),
+        }
+    }
+
+    /// ```
+    /// use warned::Warned;
+    ///
+    /// let a = Warned::<_, &str>::from_result_or(Ok(1), 2);
+    /// assert_eq!(a.value, 1);
+    /// assert!(a.warnings.is_empty());
+    ///
+    /// let b = Warned::<_, &str>::from_result_or(Err("oops"), 2);
+    /// assert_eq!(b.value, 2);
+    /// assert_eq!(b.warnings, vec!["oops"]);
+    /// ```
+    pub fn from_result_or(src: Result<T, W>, default: T) -> Self {
+        Self::from_result_or_else(src, || default)
+    }
+
+    /// ```
+    /// use warned::Warned;
+    ///
+    /// let a = Warned::<i32, &str>::from_result_or_default(Ok(1));
+    /// assert_eq!(a.value, 1);
+    /// assert!(a.warnings.is_empty());
+    ///
+    /// let b = Warned::<i32, &str>::from_result_or_default(Err("oops"));
+    /// assert_eq!(b.value, 0);
+    /// assert_eq!(b.warnings, vec!["oops"]);
+    /// ```
+    pub fn from_result_or_default(src: Result<T, W>) -> Self
+    where
+        T: Default,
+    {
+        Self::from_result_or_else(src, T::default)
+    }
 }
 
 impl<T, W> Warned<Option<T>, W> {
@@ -94,7 +145,7 @@ impl<T, W> Warned<Option<T>, W> {
     pub fn from_result(src: Result<T, W>) -> Self {
         match src {
             Ok(x) => Self::new(Some(x), vec![]),
-            Err(e) => Self::new(None, vec![e]),
+            Err(e) => Self::new(None, vec![e.into()]),
         }
     }
 }
