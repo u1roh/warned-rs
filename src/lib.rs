@@ -321,10 +321,7 @@ impl<T: Default, E> From<Result<T, E>> for Warned<T, E> {
     /// assert_eq!(b.warnings, vec!["oops"]);
     /// ```
     fn from(result: Result<T, E>) -> Self {
-        match result {
-            Ok(x) => x.into(),
-            Err(e) => Self::new(T::default(), vec![e]),
-        }
+        Self::from_result_or_default(result)
     }
 }
 
