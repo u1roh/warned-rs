@@ -1,4 +1,4 @@
-# `Warned<T, W>`; represents a value with warnings
+# `Warned<T, W>` ... a value with warnings
 
 The `Warned<T, W>` type represents a value with warnings, while the `Result<T, E>` type represents a value or error.
 
